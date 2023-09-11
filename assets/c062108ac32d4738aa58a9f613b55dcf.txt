@@ -1,0 +1,171 @@
+$P 60 03;3个物品
+$P 61 18;十进制的24，效益值
+$P 62 18
+$P 63 06
+ 
+$P 64 08;            单位重量效益值 3
+$P 65 0C;十进制的12  单位重量效益值 2
+$P 66 06;            单位重量效益值 1
+
+$P 68 16;            背包容量，十进制的22
+
+$P 00 E0; JMP 到80h
+$P 01 80;
+$P 02 4E;ST0:MOV R2,R3
+$P 03 C9;    LAD R1,[RI],60H    变址寻址，R2的值存的是长度，数据基址为60H
+$P 04 60
+$P 05 D1;    STA F1H,R1     直接寻址，将R1的值存入F1H,F1H地址暂时存最大值
+$P 06 F1
+$P 07 60;    LDI R0,01H
+$P  08 01
+$P 09 82;    SUB R2,R0
+$P 0A F0  ;    BZC LOOPOUT
+$P 0B 21
+$P 0C C9;ST1:LAD R1,[RI],60H
+$P 0D 60
+$P 0E C0;    LAD R0,F1H     直接寻址，将最大值取到R0处
+$P 0F F1
+$P 10 84;    SUB R0,R1
+$P 11 F0;    BZC CHANGE   有借位产生，说明R1中的值大，此时需要交换R0和R1中的值
+$P 12 B0
+$P 13 60;    LDI R0,01H
+$P 14 01
+$P 15 82;    SUB R2,R0
+$P 16 F0;      BZC LOOP   如果R2为1，说明一轮比较完成，最大的值已经存到F1H
+$P 17 1A  
+$P 18 E0;     JMP ST1     R2不为1，跳到ST1，继续比较
+$P 19 0C
+$P 1A 60;LOOP:LDI R0,01H
+$P 1B 01
+$P 1C 83;    SUB R3,R0   R3的值决定比较的轮数，如果R3的值为1，说明比较完成
+$P 1D F0;    BZC LOOPOUT
+$P 1E 21
+$P 1F E0;    JMP ST0    R3不为1，跳到ST0，开启新的一轮比较
+$P 20 02
+
+;输出单位重量效益值，非增序，从大到小
+$P 21 C2;LOOPOUT:LAD R2,60H 
+$P 22 60
+$P 23 C8;OUT: LAD R0,[RI],60H    变址寻址，R2的值存的是长度，数据基址为60H
+$P 24 60
+$P 25 30;    OUT 40H,R0     从大到小输出，从后往前输出
+$P 26 40
+$P 27 61;    LDI R1,01H
+$P 28 01
+$P 29 86;    SUB R2,R1
+$P 2A F0;    BZC END1
+$P 2B 2E
+$P 2C E0;    JMP out
+$P 2D 23 
+    
+;输出相应效益值对应的重量
+$P 2E C2;END1:LAD R2,60H 
+$P 2F 60
+$P 30 C8;OUT: LAD R0,[RI],63H    变址寻址，R2的值存的是长度，数据基址为60H
+$P 31 63
+$P 32 30;    OUT 40H,R0     从大到小输出，从后往前输出
+$P 33 40
+$P 34 61;    LDI R1,01H
+$P 35 01
+$P 36 86;    SUB R2,R1
+$P 37 F0;    BZC END2
+$P 38 3B
+$P 39 E0;    JMP out
+$P 3A 30
+
+;判断能否物品装下
+$P 3B C0;END2:LAD R0，68H
+$P 3C 68
+$P 3D C2;     LAD R2,60H
+$P 3E 60
+$P 3F C9;LOOPEXIT:LAD R1,[RI],63H    变址寻址，R2的值存的是长度，数据基址为60H         
+$P 40 63 
+$P 41 D0;         STA 70H,R0
+$P 42 70        
+$P 43 84;         SUB R0,R1
+$P 44 F0;         BZC EXIT0   背包容量不够
+$P 45 4F
+$P 46 34;         OUT 40H,R1
+$P 47 40
+$P 48 63;         LDI R3,01H
+$P 49 01
+$P 4A 8E;         SUB R2,R3
+$P 4B F0;         BZC EXIT      给定物品全部装下吧，比较次数
+$P 4C 53
+$P 4D E0;         JMP LOOPEXIT
+$P 4E 3F
+$P 4F C0   ;EXIT0:LAD R0,70H
+$P 50 70
+$P 51 30 ;       OUT 40H,R0    输出背包剩余容量
+$P 52 40     
+$P 53 50;EXIT:HLT
+
+
+
+
+$P B0 D2;CHANGE:STA F2H,R2  得到大数的地址
+$P B1 F2
+$P B2 C0;       LAD R0,F1H  得到小值,直接寻址，将最小值取到R0处，因为经过sub，R0的值已经改变
+$P B3 F1
+$P B4 D1;       STA F1H,R1   把大值存入F1H
+$P B5 F1
+$P B6 4E;       MOV R2,R3
+$P B7 D9;       STA [RI],60H,R1   把大值存到小值地址，小值地址就在偏移地址为R3处，即这一轮的比较值
+$P B8 60
+$P B9 C2;       LAD R2,F2H
+$P BA F2
+$P BB D8;       STA [RI],60H,R0  把小值存到大值地址，间接寻址
+$P BC 60
+
+
+$P BD 4E       ;MOV R2,R3
+$P BE C9       ;LAD R1,[RI],63H
+$P BF 63
+$P C0 D1       ;STA F3H,R1   得到较小效益值的重量，暂存入F3H
+$P C1 F3
+$P C2 C2       ;LAD R2,F2H
+$P C3 F2
+$P C4 C9       ;LAD R1,[RI],63H      R1现在存较大效益值重量
+$P C5 63
+$P C6 4E       ;MOV R2,R3
+$P C7 D9       ;STA [RI],63H,R1
+$P C8 63
+$P C9 C1       ;LAD R1,F3H
+$P CA F3
+$P CB C2       ;LAD R2,F2H
+$P CC F2
+$P CD D9       ;STA [RI],63H,R1 
+$P CE 63
+$P CF E0;       JMP 11H
+$P D0 11
+
+
+$P 80 62;LDI R2,00 
+$P 81 00
+$P 82 C8;LOOP0:LAD R0，[RI],61H  从61H取效益值
+$P 83 61 
+$P 84 C9;      LAD R1,[RI],64H  从64H取重量
+$P 85 64     
+$P 86 63;      LDI R3,00
+$P 87 00         
+$P 88 73;LOOP:INC R3
+$P 89 84;     SUB R0,R1
+$P 8A F0;     BZC LOOP1
+$P 8B 8E   
+$P 8C E0;     JMP LOOP
+$P 8D 88    
+$P 8E DB;LOOP1:STA [RI],61H,R3
+$P 8F 61;    
+$P 90 72;     INC R2
+$P 91 C3;     LAD R3,60H  从60H处取物品个数
+$P 92 60
+$P 93 8B;     SUB R3,R2   比较物品数量  
+$P 94 F0;     BZC LOOP2
+$P 95 98
+$P 96 E0;     JMP LOOP0
+$P 97 82     
+$P 98 C3;LOOP2:LAD R3,60H
+$P 99 60
+$P 9A E0;     JMP BACK
+$P 9B 02 
+          
